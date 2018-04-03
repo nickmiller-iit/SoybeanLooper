@@ -8,6 +8,11 @@ To generate some genomic contigs, sequenced a single individual: MA22 with one l
 
 ### Initial data QC.
 
-Ran fastqc 0.11.7 on the two raw data files. Total number of read pairs is 28,001,390. Overall, the data look decent. Theere is as usual, both a decline in mean quality score and an increase in variance in quality score toward the end of the reads. Fastqc does not find any adaptor sequences. There is one overrepresented sequence in the read 2 data, but not iditifiable source, and it is found in 0.19% of reads.
+Ran fastqc 0.11.7 on the two raw data files. Total number of read pairs is 28,001,390. Overall, the data look decent. Theere is as usual, both a decline in mean quality score and an increase in variance in quality score toward the end of the reads. Fastqc does not find any adaptor sequences. There is one overrepresented sequence in the read 2 data, but not identifiable source, and it is found in 0.19% of reads.
 
 Conclusion - we are in good shape, but we will want to do some quality-trimming before attempting assembly.
+
+### Quality trimming and adaptor clipping
+
+Used trimmomatic to trim low quality sequence. Also ran an adaptor clipping step. No evidence of adaptor contamination, but it can't hurt!
+
