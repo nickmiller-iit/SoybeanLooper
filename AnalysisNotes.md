@@ -16,3 +16,6 @@ Conclusion - we are in good shape, but we will want to do some quality-trimming 
 
 Used trimmomatic to trim low quality sequence. Also ran an adaptor clipping step. No evidence of adaptor contamination, but it can't hurt!
 
+### QC of trimmed data
+
+Re-ran fastqc on the trimmed paired data. Paired reads look good, quality is hig, no overrepresented sequences, 25,075,929 pairs of reads retained.

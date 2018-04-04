@@ -59,3 +59,10 @@ $(GENOME_TRIMMED_ALL): $(GENOME_TRIMMED_DIR) $(GENOME_RAW_ALL)
 	trimmomatic PE -threads 16 $(GENOME_RAW_ALL) $(GENOME_TRIMMED_ALL) $(GENOME_TRIMS)
 
 trim_genome: $(GENOME_TRIMMED_ALL)
+
+#
+# QC of trimmed data
+#
+
+fastqc_trimmed: $(QC_OUT_DIR) $(GENOME_TRIMMED_ALL)
+	fastqc $(FASTQC_OPTS) $(GENOME_TRIMMED_ALL)
