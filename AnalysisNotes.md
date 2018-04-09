@@ -19,3 +19,7 @@ Used trimmomatic to trim low quality sequence. Also ran an adaptor clipping step
 ### QC of trimmed data
 
 Re-ran fastqc on the trimmed paired data. Paired reads look good, quality is hig, no overrepresented sequences, 25,075,929 pairs of reads retained.
+
+## Assembly with SPAdes
+
+We expect our geneome to be highly heterozygous, which will tend to produce a fragmented assembly with many redundant contigs corresponding to alleles at the same loci. Hugh saw this problem with the WCR genome, and the redundans pipline did a decent job of cleaning up redundant contigs and improving scaffold length. We will use the same approach. In the redundans paper, they tried several DeBruijn assemblers, and SPAdes seemed to perform best, so we will do likewise. Spades puts all of its output into a specified dir, so we can use the output dir as the make target.

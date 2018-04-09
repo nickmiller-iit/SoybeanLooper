@@ -66,3 +66,12 @@ trim_genome: $(GENOME_TRIMMED_ALL)
 
 fastqc_trimmed: $(QC_OUT_DIR) $(GENOME_TRIMMED_ALL)
 	fastqc $(FASTQC_OPTS) $(GENOME_TRIMMED_ALL)
+
+#
+# Assemble with SPAdes
+#
+
+# SPAdes uses an output dir, so just set that as the target.
+
+spades.assembley: $(GENOME_TRIMMED_ALL)
+	spades.py -o spades.assembley -1 $(GENOME_TRIMMED_1P) -2 $(GENOME_TRIMMED_2P)
