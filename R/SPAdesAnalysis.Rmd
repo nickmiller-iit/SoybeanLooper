@@ -1,0 +1,108 @@
+---
+title: "Initial SPAdes assembly"
+output:
+  html_document:
+    df_print: paged
+editor_options: 
+  chunk_output_type: console
+---
+
+Taking a look at the SPAdes assembly. Helpully, the title lines in the contigs.fasta file include length and coverage info, so we can read those directly.
+
+## Load required libs and other misc setup
+
+```{r}
+library(dplyr)
+
+cl <- "steelblue2"
+```
+
+
+## Read in the data
+
+```{r dat}
+dat <- data.frame(node = as.character(system("grep '>' ../spades.assembley/contigs.fasta | cut -d '_' -f 2", intern = T)),
+                  len = as.numeric(system("grep '>' ../spades.assembley/contigs.fasta | cut -d '_' -f 4", intern = T)),
+                  cov = as.numeric(system("grep '>' ../spades.assembley/contigs.fasta | cut -d '_' -f 6", intern = T)))
+```
+
+## Contig lengths.
+
+Note that SPAdes uses several K values for graph construction. The largest value of K used was 77.
+
+Let's take a look at the distribution of contig lengths:
+
+```{r}
+d <- density(dat$len)
+plot(d,
+     main = "Contig length distribution")
+
+polygon(d,
+        col = cl)
+```
+
+So we have an odd double peak of lengths, zoom in to see what's up
+
+```{r}
+x <- hist(filter(dat, len < 500)$len,
+     col = cl,
+     breaks = seq(from = min(dat$len) - 0.5, to = 500.5, by = 1))
+
+```
+
+Apparently, we have a spike at 78, which is the largest value of k + 1. Frequency also kicks up abruptly at length = 229 bp, not sure what that's about.
+
+We also may not care all that much about these small contigs, since smaller contigs are more likely to be junk. The N50 value is 4883, and the N90 is 1047 (i.e. 90% of the assembly is in contigs >= 1047 bp). Just out of curiousity, what percentage of the assembly is in contigs >= 1kb?
+
+```{r}
+lengths.sorted <- sort(dat$len)
+sum(lengths.sorted[lengths.sorted >= 1000]) / sum(lengths.sorted)
+```
+
+91%.
+
+Lets take a look at coverage distributions.
+
+First, for all contigs
+```{r}
+hist(dat$cov,
+     col = cl)
+```
+Obviously, we have a very long tail of a few high coverage contigs. Let's zoom in
+
+```{r}
+cov.max = 25
+hist(filter(dat, cov <= cov.max)$cov,
+     col = cl,
+     breaks = seq(from = -0.5,
+                  to = cov.max + 0.5,
+                  by = 1))
+```
+
+Looks like the mode is around 5.
+
+What about contigs >= 1kb?
+
+```{r}
+cov.max = 25
+hist(filter(dat, cov <= cov.max, len >= 1000)$cov,
+     col = cl,
+     breaks = seq(from = -0.5,
+                  to = cov.max + 0.5,
+                  by = 1))
+```
+Again the mode is around 5, but we have dropped some very low coverage contigs.
+
+Finally, out of curiosity, howm much of the assembly is in contigs >= 1kb that have coverage between 3 and 15. This should represent decent-sized, non-repetitive contigs
+
+```{r}
+low.cov.1.kb <- filter(dat,
+                       len >= 1000,
+                       cov >= 3,
+                       cov <= 15)$len
+
+sum(low.cov.1.kb) / sum(dat$len)
+```
+ 88.4%. Not bad!
+
+
