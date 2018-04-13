@@ -73,5 +73,51 @@ fastqc_trimmed: $(QC_OUT_DIR) $(GENOME_TRIMMED_ALL)
 
 # SPAdes uses an output dir, so just set that as the target.
 
-spades.assembley: $(GENOME_TRIMMED_ALL)
-	spades.py -o spades.assembley -1 $(GENOME_TRIMMED_1P) -2 $(GENOME_TRIMMED_2P)
+spades.assembly: $(GENOME_TRIMMED_ALL)
+	spades.py -o spades.assembly -1 $(GENOME_TRIMMED_1P) -2 $(GENOME_TRIMMED_2P)
+
+#
+# Reduce redundancy and scaffold with redundans
+#
+
+# Redundans is not available on bioconda but it is available as a docker image
+# Using the docker image to save installing a bunch of dependencies including python 2
+
+#
+# We will need to give docker access to the contigs from SPAdes and the trimmed fastq files
+# after some playing around, it looks like docker is a bit ticky about mounting multiple different
+# volumes. Solution is to set up a redundans dir, and link in the required files
+#
+
+REDUNDANS_DIR=redundans
+
+$(REDUNDANS_DIR):
+	if [ ! -d $(REDUNDANS_DIR) ]; then mkdir $(REDUNDANS_DIR); fi
+
+REDUNDANS_FASTA_IN=$(REDUNDANS_DIR)/contigs.fasta
+
+$(REDUNDANS_FASTA_IN): $(REDUNDANS_DIR) spades.assembly/contigs.fasta
+	ln spades.assembly/contigs.fasta $(REDUNDANS_FASTA_IN)
+
+REDUNDANS_TRIMMED_1P=$(subst $(GENOME_TRIMMED_DIR),$(REDUNDANS_DIR),$(GENOME_TRIMMED_1P))
+
+$(REDUNDANS_TRIMMED_1P): $(REDUNDANS_DIR) $(GENOME_TRIMMED_1P)
+	ln $(GENOME_TRIMMED_1P) $(REDUNDANS_TRIMMED_1P)
+
+REDUNDANS_TRIMMED_2P=$(subst $(GENOME_TRIMMED_DIR),$(REDUNDANS_DIR),$(GENOME_TRIMMED_2P))
+
+$(REDUNDANS_TRIMMED_2P): $(REDUNDANS_DIR) $(GENOME_TRIMMED_2P)
+	ln $(GENOME_TRIMMED_2P) $(REDUNDANS_TRIMMED_2P)
+
+REDUNDANS_INPUTS=$(REDUNDANS_FASTA_IN) $(REDUNDANS_TRIMMED_1P) $(REDUNDANS_TRIMMED_2P)
+
+DCKR_REDUNDANS_CMD=docker run -it -v $(CURDIR)/$(REDUNDANS_DIR):/working  lpryszcz/redundans /root/src/redundans/redundans.py
+
+REDUNDANS_ARGS=-v -t 16 -f /working/contigs.fasta -i $(subst $(REDUNDANS_DIR),/working,$(REDUNDANS_TRIMMED_1P)) $(subst $(REDUNDANS_DIR),/working,$(REDUNDANS_TRIMMED_2P)) -o /working/out
+
+REDUNDANS_OUT=redundans/out
+
+$(REDUNDANS_OUT): $(REDUNDANS_INPUTS)
+	$(DCKR_REDUNDANS_CMD) $(REDUNDANS_ARGS)
+
+run_redundans: $(REDUNDANS_OUT)

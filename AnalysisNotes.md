@@ -67,3 +67,7 @@ Things I learned from analysing with R:
 The modal value of coverage per base for contigs is around 5. Fairly low, but apprently sufficient to generate some decent contigs. We do have some contigs with high coverge that are probably repetitive elemements. About 88% of the assembly appears to be in contigs >= 1 kb and with coverages that suggest they are non-repetitve.
 
 All told, I'm pretty happy with that. Nevertheless, it can't hurt to have Redundans try and clean things up a bit.
+
+## Cleanup with redundans
+
+Redundans is not available via bioconda, but it is available as a docker image. Opted to use the docker image because redundans has a fair number of dependencies to install. Ran redusndans with the defaul parameters. PResumably as a result of the way redundans runs in docker, its output directory is owned by root. Had the chown the output dir.
