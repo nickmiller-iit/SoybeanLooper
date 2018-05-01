@@ -70,4 +70,52 @@ All told, I'm pretty happy with that. Nevertheless, it can't hurt to have Redund
 
 ## Cleanup with redundans
 
-Redundans is not available via bioconda, but it is available as a docker image. Opted to use the docker image because redundans has a fair number of dependencies to install. Ran redusndans with the defaul parameters. PResumably as a result of the way redundans runs in docker, its output directory is owned by root. Had the chown the output dir.
+Redundans is not available via bioconda, but it is available as a docker image. Opted to use the docker image because redundans has a fair number of dependencies to install. Ran redundans with the default parameters. Presumably as a result of the way redundans runs in docker, its output directory is owned by root. Had to chown the output dir.
+
+Redundans produces a "reduced" set of contigs, which are then scaffolded and "filled". Assembly stats are
+
+stats for redundans/out/contigs.reduced.fa
+sum = 356934037, n = 119040, ave = 2998.44, largest = 73087
+N50 = 5323, n = 19081
+N60 = 4192, n = 26639
+N70 = 3198, n = 36374
+N80 = 2278, n = 49554
+N90 = 1394, n = 69400
+N100 = 200, n = 119040
+N_count = 0
+Gaps = 0
+
+stats for redundans/out/scaffolds.reduced.fa
+sum = 356476318, n = 112608, ave = 3165.64, largest = 77024
+N50 = 5756, n = 17615
+N60 = 4534, n = 24595
+N70 = 3447, n = 33600
+N80 = 2452, n = 45819
+N90 = 1476, n = 64379
+N100 = 200, n = 112608
+N_count = 8994
+Gaps = 1169
+
+stats for redundans/out/scaffolds.filled.fa
+sum = 356588794, n = 112747, ave = 3162.73, largest = 77024
+N50 = 5754, n = 17625
+N60 = 4531, n = 24610
+N70 = 3446, n = 33622
+N80 = 2450, n = 45854
+N90 = 1475, n = 64440
+N100 = 200, n = 112747
+N_count = 8994
+Gaps = 1169
+
+There seems to be very little difference beween the scaffolds produced by redundans and the filled scaffolds. But there is a fair improvement from the SPAdes contigs to the filled scaffolds.
+
++------------------------------+------------------------------+------------------------------+
+|                              |SPAdes contigs                |Redundans filled scaffolds    |
++------------------------------+------------------------------+------------------------------+
+|N50                           |4701                          |5754                          |
++------------------------------+------------------------------+------------------------------+
+|Total contigs / scaffolds     |172,429                       |112,747                       |
++------------------------------+------------------------------+------------------------------+
+|Total assembly size           |395,462,374                   |356,588,794                   |
++------------------------------+------------------------------+------------------------------+
+
