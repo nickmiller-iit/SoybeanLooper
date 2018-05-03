@@ -121,3 +121,55 @@ $(REDUNDANS_OUT): $(REDUNDANS_INPUTS)
 	$(DCKR_REDUNDANS_CMD) $(REDUNDANS_ARGS)
 
 run_redundans: $(REDUNDANS_OUT)
+
+#
+# Mask repeats
+#
+
+#
+# A 2-step process: First find repeats with RepeatModeller, then mask them with RepeatMasker
+#
+
+# Input is filled scaffolds from redundans
+
+REDUNDANS_SCAFFS=$(addsuffix /scaffolds.filled.fa, $(REDUNDANS_OUT))
+
+RPTS_DIR=repeatmask
+
+# Copy and rename the redundands scaffolds file to something more meaningful
+
+UNMASKED=$(addsuffix /SoybeanLooper.fasta, $(RPTS_DIR))
+
+$(UNMASKED): $(REDUNDANS_SCAFFS)
+	if [ ! -d $(RPTS_DIR) ]; then mkdir $(RPTS_DIR); fi
+	cp $(REDUNDANS_SCAFFS) $(UNMASKED)
+
+
+#
+# RepeatModeler requires a blast database of the genome.
+# the bundled BuildDatabase utility will do this.
+# The blast db consists of multiple files in the form dbname.*
+# We will pick one of these file as the target for make.
+#
+
+RPT_DB=$(addsuffix /SoybeanLooper, $(RPTS_DIR))
+
+RPT_DB_TARGET=$(addsuffix .nin, $(RPT_DB))
+
+$(RPT_DB_TARGET): $(UNMASKED)
+	BuildDatabase -name $(RPT_DB) -engine ncbi $(UNMASKED)
+
+#
+# RepeatModeler also generates > 1 output file
+# Use the consensus sequences ouput as the target
+#
+
+RPT_SEQS=$(addsuffix -families.fa, $(RPT_DB))
+
+$(RPT_SEQS): $(RPT_DB_TARGET)
+	RepeatModeler -engine ncbi -pa 16 -database $(RPT_DB)
+
+repeat_models: $(RPT_SEQS)
+
+test:
+	echo $(RPT_SEQS)

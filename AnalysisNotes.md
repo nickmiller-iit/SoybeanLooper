@@ -119,3 +119,21 @@ There seems to be very little difference beween the scaffolds produced by redund
 |Total assembly size           |395,462,374                   |356,588,794                   |
 +------------------------------+------------------------------+------------------------------+
 
+## Repeats
+
+We don't want to desgn a bunch of MIPs that target repetitive elements. Use RepeatModeler to do de-novo repeat identification and RepeatMasker to mask out any repeats
+
+After running for two days, RepeatModeler finds nothing. Here's what it has to say for itself:
+
+```
+Discovery complete: 0 families found
+Program Time: 45:20:05 (hh:mm:ss) Elapsed Time
+Working directory:  /work/nick/SoybeanLooper/RM_30101.TueMay11117282018
+may be deleted unless there were problems with the run.
+No families identified.  Perhaps the database is too small
+or contains overly fragmented sequences.
+```
+
+This might be because repreats are collapsing into a few contigs, so they are only represented once each in the assembly.
+
+If so, we might expect high read coverage in repeat regions, although this might be complicated by the fact that we had a PCR step in our library prep. We can try and solve that by marking / removing likely PCR duplicates with SAMTools or whatever.
