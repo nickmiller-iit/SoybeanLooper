@@ -123,6 +123,16 @@ $(REDUNDANS_OUT): $(REDUNDANS_INPUTS)
 run_redundans: $(REDUNDANS_OUT)
 
 #
+# Redundans symlinks its output scaffolds. Make a copy of the filled scaffolds file in the top level working
+# dir
+#
+
+REDUNDANSFILLEDSCAFFS=$(addsuffix /scaffolds.filled.fa, $(REDUNDANS_OUT))
+
+SoybeanLooperScaffolds.fasta: $(REDUNDANSFILLEDSCAFFS)
+	cp -L $(REDUNDANSFILLEDSCAFFS) SoybeanLooperScaffolds.fasta
+
+#
 # Mask repeats
 #
 
@@ -170,6 +180,21 @@ $(RPT_SEQS): $(RPT_DB_TARGET)
 	RepeatModeler -engine ncbi -pa 16 -database $(RPT_DB)
 
 repeat_models: $(RPT_SEQS)
+
+
+#
+# Align reads with bwa mem
+#
+
+BWADIR=bwa
+
+#
+# Set up db. Note that redundans symlinks scaffolds files, so dereference to get the link target
+# when copying
+#
+
+BWAREF=$(addsuffix /SoybeanLooperScaffolds
+
 
 test:
 	echo $(RPT_SEQS)
