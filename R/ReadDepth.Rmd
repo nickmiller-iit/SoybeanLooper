@@ -1,0 +1,95 @@
+---
+title: "Read depth analysis"
+output: html_notebook
+---
+
+We want to avoid placing MIPS in repetitive regions. The failure of RepeatModeler to find any repreats suggests that repetitive sequences ahve been collapsed into single contigs. If so, we expect that it we align reads back against the assembly, repetitive sequences should be regions of high depth coverage. To assess read depth, trimmed reads were aligned to the redundans filled scaffolds. Samtools was used to count read dept at each position in the assembly
+
+# Set up
+
+```{r}
+library(dplyr)
+library(magrittr)
+```
+
+
+```{r dat}
+statsFile = "../bwa/depth.stats"
+
+dat <- read.table(file = statsFile,
+                  header = F,
+                  col.names = c("scaffold", "position", "depth")
+                  )
+
+dat <- sample_n(tbl = dat, size = 1000000) # R will get hopelessly bogged if we use all positions
+
+```
+
+# Basic info
+
+```{r}
+range(dat$depth)
+mean(dat$depth)
+sum(dat$depth == 0)
+```
+
+# Read depth distribution.
+
+First, plot the density for the entire range of depths
+
+```{r}
+dat$depth %>% 
+  density() %>% 
+  plot(main = "all read depths")
+
+```
+
+Zoom in to regigion between 1 and 100
+
+```{r}
+filter(dat,
+       depth > 0,
+       depth <= 100)$depth %>%
+  density() %>%
+  plot(main = "Depth range 1 - 100")
+```
+
+So it looks like setting a max read depth of about 50 would avoid repetitive stuff.
+
+Out of interest, what's the mode for depth in this range?
+
+```{r}
+x <- filter(dat,
+            depth > 0,
+            depth <= 50)$depth %>%
+  hist(breaks = seq(from = 0.5, to = 50.5, by = 1),
+       col = "steelblue",
+       main = "Histogram of read lengths in range 1 - 50")
+
+x$mids[which(x$counts == max(x$counts))]
+```
+So we get a mode of 10.
+
+For the purposes of MIPs design, if we target regions where coverage is < 40 reads we should avoid repeats.
+
+# Looking for repeats
+
+Lets see is we can find some parts of the right tail where there is a hum, perhaps indicating repeats
+
+```{r}
+filter(dat,
+       depth > 1000,
+       depth <= 8000)$depth %>%
+  density() %>%
+  plot()
+```
+Looks like there might be something going on in the 3000 - 5000 range
+
+```{r}
+x.2 <- filter(dat,
+              depth >= 2000,
+              depth <= 6000)$depth %>%
+  hist(breaks = 100)
+```
+
+Not convinced this is a thing.

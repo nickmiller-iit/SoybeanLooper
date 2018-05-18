@@ -243,3 +243,19 @@ $(DEDUP_DEPTH_STATS): $(DEDUPALIGN)
 	samtools depth -a $(DEDUPALIGN) > $(DEDUP_DEPTH_STATS)
 
 depth_stats: $(DEDUP_DEPTH_STATS)
+
+#
+# Add an index so we can view the alignment with Tablet
+#
+
+DEDUPALIGN_IDX=$(addsuffix .dedup.bam.bai, $(BWAREF))
+
+$(DEDUPALIGN_IDX): $(DEDUPALIGN)
+	samtools index $(DEDUPALIGN) $(DEDUPALIGN_IDX)
+
+BWA_REF_IDX=$(addsuffix .fai, $(BWAREF))
+
+$(BWA_REF_IDX): $(BWAREF)
+	samtools faidx $(BWAREF)
+
+index_bwa_alignment_dedup: $(DEDUPALIGN_IDX) $(BWA_REF_IDX)

@@ -141,3 +141,5 @@ If so, we might expect high read coverage in repeat regions, although this might
 Aligned the trimmed/cleaned reads to the redundans filled scaffolds with bwa mem.
 
 Removed duplicates and calculated read depth at each position in the assembly using samtools.
+
+Following some analysis of read depths in R, plus some eyeballing in Tablet, it looks like if we use regions with coverage <= 40 reads, we should be in single-copy regions of the genome.
