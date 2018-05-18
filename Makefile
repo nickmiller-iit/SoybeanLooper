@@ -189,12 +189,57 @@ repeat_models: $(RPT_SEQS)
 BWADIR=bwa
 
 #
-# Set up db. Note that redundans symlinks scaffolds files, so dereference to get the link target
-# when copying
+# Set up db. Link in the assembled scaffolds
 #
 
-BWAREF=$(addsuffix /SoybeanLooperScaffolds
+BWAREF=$(addsuffix /SoybeanLooperScaffolds.fasta, $(BWADIR))
+
+$(BWAREF): SoybeanLooperScaffolds.fasta
+	if [ ! -d $(BWADIR) ]; then mkdir $(BWADIR); fi
+	ln SoybeanLooperScaffolds.fasta $(BWAREF)
 
 
-test:
-	echo $(RPT_SEQS)
+# BWA index consists of several files with different extensions, use .bwt as a "trigger"
+
+
+BWAIDX=$(addsuffix .bwt, $(BWAREF))
+
+$(BWAIDX): $(BWAREF)
+	bwa index $(BWAREF)
+
+#
+# Align with bwa mem
+#
+
+BWAALIGN=$(addsuffix .bam, $(BWAREF))
+
+$(BWAALIGN): $(BWAIDX) $(GENOME_TRIMMED_1P) $(GENOME_TRIMMED_2P)
+	bwa mem -t 24 $(BWAREF) $(GENOME_TRIMMED_1P) $(GENOME_TRIMMED_2P) | samtools view -b -o $(BWAALIGN)
+
+bwa_alignment: $(BWAALIGN)
+
+#
+# Get rid of PCR duplicates. This is a bit of a business due to different sorting requirements
+#
+
+DEDUPALIGN=$(addsuffix .dedup.bam, $(BWAREF))
+
+$(DEDUPALIGN): $(BWAALIGN)
+	samtools sort -n -@ 24 $(BWAALIGN) > $(BWADIR)/tmp1.bam
+	samtools fixmate -m $(BWADIR)/tmp1.bam $(BWADIR)/tmp2.bam
+	samtools sort -@ 24 $(BWADIR)/tmp2.bam > $(BWADIR)/tmp3.bam
+	samtools markdup -r $(BWADIR)/tmp3.bam $(DEDUPALIGN)
+	rm $(BWADIR)/tmp*.bam
+
+bwa_alignment_dedup: $(DEDUPALIGN)
+
+#
+# Extract read depth stats, including sites with 0 depth
+#
+
+DEDUP_DEPTH_STATS=$(addsuffix /depth.stats, $(BWADIR))
+
+$(DEDUP_DEPTH_STATS): $(DEDUPALIGN)
+	samtools depth -a $(DEDUPALIGN) > $(DEDUP_DEPTH_STATS)
+
+depth_stats: $(DEDUP_DEPTH_STATS)

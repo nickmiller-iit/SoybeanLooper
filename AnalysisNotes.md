@@ -137,3 +137,7 @@ or contains overly fragmented sequences.
 This might be because repreats are collapsing into a few contigs, so they are only represented once each in the assembly.
 
 If so, we might expect high read coverage in repeat regions, although this might be complicated by the fact that we had a PCR step in our library prep. We can try and solve that by marking / removing likely PCR duplicates with SAMTools or whatever.
+
+Aligned the trimmed/cleaned reads to the redundans filled scaffolds with bwa mem.
+
+Removed duplicates and calculated read depth at each position in the assembly using samtools.
