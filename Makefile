@@ -259,3 +259,42 @@ $(BWA_REF_IDX): $(BWAREF)
 	samtools faidx $(BWAREF)
 
 index_bwa_alignment_dedup: $(DEDUPALIGN_IDX) $(BWA_REF_IDX)
+
+
+#######################################
+# Identifying target regions for MIPs #
+#######################################
+
+BEDDIR=bed
+
+$(BEDDIR):
+	if [ ! -d $(BEDDIR) ]; then mkdir $(BEDDIR); fi
+
+#
+# Make a BED file of contigs >= 1 kb
+#
+
+1KBCTGS_BED=$(addsuffix /1kbContigs.bed, $(BEDDIR))
+
+$(1KBCTGS_BED): $(DEDUPALIGN_IDX) | $(BEDDIR)
+	samtools idxstats $(DEDUPALIGN) | awk '$$2 >= 1000' | awk '{OFS = "\t"; print $$1, 0, $$2-1}' > $(1KBCTGS_BED)
+
+SINGLECOPY_BED=$(addsuffix /singlecopy.bed, $(BEDDIR))
+
+#
+# Make a bedfile of regions > 200bp where coverage is <= 50 reads pre site
+#
+
+$(SINGLECOPY_BED): $(DEDUPALIGN_IDX) | $(BEDDIR)
+	bedtools genomecov -bg -ibam $(DEDUPALIGN) | awk '$$4 <= 50' | cut -f 1-3 | bedtools merge | awk '$$3 - $$2 > 199' > $(SINGLECOPY_BED)
+
+#
+# Make a bedfile of the intersection of "single copy" regions and 1kb contigs
+#
+
+SINGLECOPY_1KBCTGS_BED=$(addsuffix /1kbctgs.singlecopy.bed, $(BEDDIR))
+
+$(SINGLECOPY_1KBCTGS_BED): $(1KBCTGS_BED) $(SINGLECOPY_BED)
+	bedtools intersect -a $(1KBCTGS_BED) -b $(SINGLECOPY_BED) > $(SINGLECOPY_1KBCTGS_BED)
+
+singlecopy_bedfile: $(SINGLECOPY_1KBCTGS_BED)

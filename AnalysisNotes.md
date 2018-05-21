@@ -142,4 +142,19 @@ Aligned the trimmed/cleaned reads to the redundans filled scaffolds with bwa mem
 
 Removed duplicates and calculated read depth at each position in the assembly using samtools.
 
-Following some analysis of read depths in R, plus some eyeballing in Tablet, it looks like if we use regions with coverage <= 40 reads, we should be in single-copy regions of the genome.
+Following some analysis of read depths in R, plus some eyeballing in Tablet, it looks like if we use regions with coverage <= 50 reads, we should be in single-copy regions of the genome.
+
+## Identifying probable single copy regions
+
+We want to identify a set of single copy regions that can be used used for targets for MIPS probes. Basic approach:
+
+ 1. Find all sites in the assembly where depth of coverage <= 50
+ 2. Merge contiguous regions of coverage <= 50
+ 3. Discard any small contiguous regions < 200bp, as these will not make good targets for MIPs.
+ 4. Drop any contigs < 1 kb, these only make up a few % of the total assembly. Very small contigs have a higher sisk of being junk.
+ 
+We can use bedtools for most of this. **NB** BED files number positions starting at 0.
+
+Eyeballing a few contigs in Tablet suggests this is pretty conservative. We are probably excluding a fair bit of single copy sequence where coverage exceeds 50 reads. Nevertheless, the bed file of regions with <= 50 reads coverage contains 352,306,659 bases, 98.7% of the redundans scaffolded assembly.
+
+After removal of scaffolds < 1kb, we are left with 335,481,145 bases of acceptable sequence, 94.1% of the redundans scaffolded assembly.
