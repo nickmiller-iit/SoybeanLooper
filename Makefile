@@ -298,3 +298,27 @@ $(SINGLECOPY_1KBCTGS_BED): $(1KBCTGS_BED) $(SINGLECOPY_BED)
 	bedtools intersect -a $(1KBCTGS_BED) -b $(SINGLECOPY_BED) > $(SINGLECOPY_1KBCTGS_BED)
 
 singlecopy_bedfile: $(SINGLECOPY_1KBCTGS_BED)
+
+
+#########################################
+# Generating MIPs sequences with mipgen #
+#########################################
+
+#
+# Download and build mipgen.
+# Mipgen is not available via bioconda or (afaik) other pre-built binary sources
+# Instead, download an build locally.
+#
+
+MIPGEN_BINDIR=MIPGEN
+
+MIPGEN_BIN=$(addsuffix /mipgen, $(MIPGEN_BINDIR))
+
+$(MIPGEN_BINDIR):
+	git clone https://github.com/shendurelab/MIPGEN.git
+
+
+$(MIPGEN_BIN): | $(MIPGEN_BINDIR)
+	$(MAKE) -C $(MIPGEN_BINDIR)
+
+mipgen: $(MIPGEN_BIN)
