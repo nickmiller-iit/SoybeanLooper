@@ -158,3 +158,26 @@ We can use bedtools for most of this. **NB** BED files number positions starting
 Eyeballing a few contigs in Tablet suggests this is pretty conservative. We are probably excluding a fair bit of single copy sequence where coverage exceeds 50 reads. Nevertheless, the bed file of regions with <= 50 reads coverage contains 352,306,659 bases, 98.7% of the redundans scaffolded assembly.
 
 After removal of scaffolds < 1kb, we are left with 335,481,145 bases of acceptable sequence, 94.1% of the redundans scaffolded assembly.
+
+## Identifying MIPs probes with MIPGEN
+
+The MIPGEN tool from the Shendure lab is designed to identify MIPs probes for specified targets. It also checks that probes won't hybridize elsewhere in the genome and calculates a score reflecting the probability that the probe will produce a viable assay. All of this is very helpful. However MIPGEN is intended for designing tiled sets of probes that cover larger features. We don't want to do this, because we are interested in surveying sites scattered throughout the genome. This isn't a big deal as we can just pick one probe from a tiled set.
+
+### MIPGEN is a little fussy
+
+After playing around with MIPGEN, I noticed some things that cause it to fail. This was figured out by trial and error, since the MIPGEN documentation and paper didn't really give me any clues as to what was going on. Known issues include:
+
+ * MIPGEN chokes on fasta files that contain pipe characters in the identifier lines. This appears to be because it passes identifiers directly to samtools faidx without quoting the identifier.
+ * MIPGEN fails on large features. This seems to be because if it cannot tile across the feature it fails. The easy workaround is to split features into segments of ~300 bases.
+ * MIPGEN fails on features at the start of a contig. No idea why, but avoiding features < 400 bases from the start seems to serve as a workaround.
+
+To work around these issues the basic approach is
+
+ 1. Update the redundans assembly to remove pipe chars from identifiers.
+ 2. Regenerate BED files to match identifiers.
+ 3. Generate a new BED file in which regions of contiguous presumed single-copy DNA are split up into 300 base segments.
+ 4. Remove any segmens < 400 bases from the start of a contig.
+ 
+ 
+ 
+
