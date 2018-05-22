@@ -124,13 +124,15 @@ run_redundans: $(REDUNDANS_OUT)
 
 #
 # Redundans symlinks its output scaffolds. Make a copy of the filled scaffolds file in the top level working
-# dir
+# dir. While we are doing this, get read of pipe chars in fasta ID lines, which cause downstream headaches
+# and convert records to 2-line fasta format.
 #
 
 REDUNDANSFILLEDSCAFFS=$(addsuffix /scaffolds.filled.fa, $(REDUNDANS_OUT))
 
 SoybeanLooperScaffolds.fasta: $(REDUNDANSFILLEDSCAFFS)
-	cp -L $(REDUNDANSFILLEDSCAFFS) SoybeanLooperScaffolds.fasta
+	python python/fastaRemovePipes.py $(REDUNDANSFILLEDSCAFFS) > SoybeanLooperScaffolds.fasta
+#	cp -L $(REDUNDANSFILLEDSCAFFS) SoybeanLooperScaffolds.fasta
 
 #
 # Mask repeats
