@@ -165,18 +165,19 @@ The MIPGEN tool from the Shendure lab is designed to identify MIPs probes for sp
 
 ### MIPGEN is a little fussy
 
-After playing around with MIPGEN, I noticed some things that cause it to fail. This was figured out by trial and error, since the MIPGEN documentation and paper didn't really give me any clues as to what was going on. Known issues include:
+After playing around with MIPgen, I noticed some things that cause it to fail. This was figured out by trial and error, since the MIPGEN documentation and paper didn't really give me any clues as to what was going on. Known issues include:
 
- * MIPGEN chokes on fasta files that contain pipe characters in the identifier lines. This appears to be because it passes identifiers directly to samtools faidx without quoting the identifier.
- * MIPGEN fails on large features. This seems to be because if it cannot tile across the feature it fails. The easy workaround is to split features into segments of ~300 bases.
- * MIPGEN fails on features at the start of a contig. No idea why, but avoiding features < 400 bases from the start seems to serve as a workaround.
+ * MIPGen chokes on fasta files that contain pipe characters in the identifier lines. This appears to be because it passes identifiers directly to samtools faidx without quoting the identifier.
+ * MIPGen fails on features at the start of a contig. No idea why, but avoiding features < 300 bases from the start seems to serve as a workaround.
+ * MIPGen fails at the tiling stage on large features. This seems to be because if it cannot tile across the feature it fails.
 
 To work around these issues the basic approach is
 
  1. Update the redundans assembly to remove pipe chars from identifiers.
  2. Regenerate BED files to match identifiers.
- 3. Generate a new BED file in which regions of contiguous presumed single-copy DNA are split up into 300 base segments.
- 4. Remove any segmens < 400 bases from the start of a contig.
+ 3. Generate a new BED file with 1bp targets, evenly spaced through the non-repetitive regions at 500bp intervals. targets at the start of the scaffold are dropped. This has the effect that, at the tiling stage, MIPgen ontly needs to "tile" over a single base, so it just picks the best probe for each 1bp target. This also reduces the sizes of the output files considerably.
+
+These workarounds were figured out in discussion with Evan Boyle and Jay Shendure. Be sure to acknowledge them in the paper.
  
  
  
