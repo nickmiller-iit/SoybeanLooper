@@ -1,0 +1,15 @@
+diff --git a/mipgen.cpp b/mipgen.cpp
+index 49df56a..a08b5fc 100644
+--- a/mipgen.cpp
++++ b/mipgen.cpp
+@@ -1123,8 +1123,8 @@ bool get_chr_fasta_sequence_using_samtools ()
+ 			+ ">> " + project_name + ".feature_sequences.fa";
+ 		system(samtools_query.c_str());
+ 		samtools_query = "samtools faidx " + bwa_genome_index + " " + prefix + chr + ":" \
+-			+ boost::lexical_cast<string>(feature->start_position_flanked - max_capture_size - 1000) + "-" \
+-			+ boost::lexical_cast<string>(feature->stop_position_flanked + max_capture_size + 14 + 1000) + " " \
++			+ boost::lexical_cast<string>(feature->start_position_flanked - max_capture_size) + "-" \
++			+ boost::lexical_cast<string>(feature->stop_position_flanked + max_capture_size + 14) + " " \
+ 			+ ">> " + project_name + ".flanking_sequences.fa";
+ 		system(samtools_query.c_str());
+ 	}

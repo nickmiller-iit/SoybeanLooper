@@ -198,7 +198,7 @@ BWAREF=$(addsuffix /SoybeanLooperScaffolds.fasta, $(BWADIR))
 
 $(BWAREF): SoybeanLooperScaffolds.fasta
 	if [ ! -d $(BWADIR) ]; then mkdir $(BWADIR); fi
-	ln SoybeanLooperScaffolds.fasta $(BWAREF)
+	ln -f SoybeanLooperScaffolds.fasta $(BWAREF)
 
 
 # BWA index consists of several files with different extensions, use .bwt as a "trigger"
@@ -275,11 +275,14 @@ $(BEDDIR):
 #
 # Make a BED file of contigs >= 1 kb
 #
-
+# Because MIPgen will fail if we try and tile probes at the very start or end of the contif, we do not include
+# the first  and last 200 bp of the contig in the BED file. For example, a 1000 bp contig will yeild a line in
+# th BED file indicating the middle 600bp
+#
 1KBCTGS_BED=$(addsuffix /1kbContigs.bed, $(BEDDIR))
 
 $(1KBCTGS_BED): $(DEDUPALIGN_IDX) | $(BEDDIR)
-	samtools idxstats $(DEDUPALIGN) | awk '$$2 >= 1000' | awk '{OFS = "\t"; print $$1, 0, $$2-1}' > $(1KBCTGS_BED)
+	samtools idxstats $(DEDUPALIGN) | awk '$$2 >= 1000' | awk '{OFS = "\t"; print $$1, 199, $$2-201}' > $(1KBCTGS_BED)
 
 SINGLECOPY_BED=$(addsuffix /singlecopy.bed, $(BEDDIR))
 
@@ -311,6 +314,8 @@ singlecopy_bedfile: $(SINGLECOPY_1KBCTGS_BED)
 # Mipgen is not available via bioconda or (afaik) other pre-built binary sources
 # Instead, download an build locally.
 #
+# We have to patch miopgen.cpp to avoid the normal behaviour of looking up sequence +/- 1 kb of the target
+#
 
 MIPGEN_BINDIR=MIPGEN
 
@@ -321,6 +326,64 @@ $(MIPGEN_BINDIR):
 
 
 $(MIPGEN_BIN): | $(MIPGEN_BINDIR)
-	$(MAKE) -C $(MIPGEN_BINDIR)
+	cd $(MIPGEN_BINDIR) &&\
+	cp ../patches/mipgen.patch ./ &&\
+	git apply mipgen.patch &&\
+	$(MAKE)
+#	$(MAKE) -C $(MIPGEN_BINDIR)
 
 mipgen: $(MIPGEN_BIN)
+
+
+#
+# Make a BED file of targets for MIPGEN
+#
+
+
+MIPGEN_DIR=mipgen
+
+$(MIPGEN_DIR):
+	if [ ! -d $(MIPGEN_DIR) ]; then mkdir $(MIPGEN_DIR); fi
+
+MIPGEN_TARGETS=$(addsuffix /targets.bed, $(MIPGEN_DIR))
+
+
+$(MIPGEN_TARGETS): $(SINGLECOPY_1KBCTGS_BED) | $(MIPGEN_DIR)
+	bedtools makewindows -b $(SINGLECOPY_1KBCTGS_BED) -w 1 -s 500  > $(MIPGEN_TARGETS)
+
+
+#
+# Make a Samtools/BWA-Indexed genome
+#
+
+MIPGEN_GENOME=$(addsuffix /SoybeanLooperScaffolds.fasta, $(MIPGEN_DIR))
+
+$(MIPGEN_GENOME): SoybeanLooperScaffolds.fasta | $(MIPGEN_DIR)
+	ln -f SoybeanLooperScaffolds.fasta $(MIPGEN_GENOME)
+
+MIPGEN_GENOME_BWAIDX=$(addsuffix .bwt, $(MIPGEN_GENOME))
+
+$(MIPGEN_GENOME_BWAIDX): $(MIPGEN_GENOME)
+	bwa index $(MIPGEN_GENOME)
+
+MIPGEN_GENOME_FAIDX=$(addsuffix .fai, $(MIPGEN_GENOME))
+
+$(MIPGEN_GENOME_FAIDX): $(MIPGEN_GENOME)
+	samtools faidx $(MIPGEN_GENOME)
+
+#
+# run MIPgen
+#
+
+MIPGEN_PROJ=$(addsuffix /SoybeanLooper, $(MIPGEN_DIR))
+
+MIPGEN_OPTS=-min_capture_size 154 -max_capture_size 184 -tag_sizes 0,0 -bwa_threads 16
+
+MIPGEN_OUT=$(addsuffix /$(addsuffix .picked_mips.txt, $(MIPGEN_PROJ)), $(MIPGEN_DIR))
+
+$(MIPGEN_OUT): $(MIPGEN_BIN) $(MIPGEN_TARGETS) $(MIPGEN_GENOME_BWAIDX) $(MIPGEN_GENOME_FAIDX)
+	$(MIPGEN_BIN) -regions_to_scan $(MIPGEN_TARGETS) -project_name $(MIPGEN_PROJ) $(MIPGEN_OPTS) -bwa_genome_index $(MIPGEN_GENOME)
+
+mips_all: $(MIPGEN_OUT)
+
+test: $(MIPGEN_TARGETS)
