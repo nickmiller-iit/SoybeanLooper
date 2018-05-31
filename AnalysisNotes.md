@@ -175,7 +175,7 @@ To work around these issues the basic approach is
 
  1. Update the redundans assembly to remove pipe chars from identifiers.
  2. Regenerate BED files to match identifiers.
- 3. Generate a new BED file with 1bp targets, evenly spaced through the non-repetitive regions at 500bp intervals. targets within 200 bases of the start or end of the scaffold are dropped. This has the effect that, at the tiling stage, MIPgen ontly needs to "tile" over a single base, so it just picks the best probe for each 1bp target. This also reduces the sizes of the output files considerably.
+ 3. Generate a new BED file with 1bp targets, evenly spaced through the non-repetitive regions at 500bp intervals. targets within 200 bases of the start or end of the scaffold are dropped. This has the effect that, at the tiling stage, MIPgen only needs to "tile" over a single base, so it just picks the best probe for each 1bp target. This also reduces the sizes of the output files considerably.
 
 These workarounds were figured out in discussion with Evan Boyle and Jay Shendure. Be sure to acknowledge them in the paper.
 
@@ -195,7 +195,15 @@ I don’t think I have time to add an option to the code (mostly because I am al
  ```
  
  *"Then as long as you keep -score_method logistic, I think it should run as you expect and tile those regions"*
- 
- 
- 
 
+
+## Running MIPgen on a reduced set of targets
+
+After attempting to run MIPgen with all possible targets, it became apparent that doing so would
+ 
+  1. Take several days, possibly more than a week.
+  2. Generate huge output files, totalling sevaeral Tb
+
+The solution is to sample from the total set of potential targets. Generating a sample of 10000 targets should still give us plenty of scope to select 50 high-quality MIPs that a re scattered throughout the genome. The R script that does the subsampling accepts a random seed as an argument. This is used to ensure that the same sample of targets can be selected every time the script is run.
+
+Made a subsample of 10000 targets and ran MIPgen. The picked_mips file contains 3224 MIPs with logistic scores >= 0.98 (ie very high scoring), in 3097 different scaffolds. 

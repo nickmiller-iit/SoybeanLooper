@@ -338,7 +338,10 @@ mipgen: $(MIPGEN_BIN)
 #
 # Make a BED file of targets for MIPGEN
 #
-
+# The actual set of targets is a sample of all possible targets. If we use everythin, the output
+# files from MIPgen get up to several terabytes. The sample is 10000 stargets, chosen at random
+# Using a small R script. Give the script a fixed seed to ensure repreatable picking of the same subset.
+#
 
 MIPGEN_DIR=mipgen
 
@@ -349,7 +352,8 @@ MIPGEN_TARGETS=$(addsuffix /targets.bed, $(MIPGEN_DIR))
 
 
 $(MIPGEN_TARGETS): $(SINGLECOPY_1KBCTGS_BED) | $(MIPGEN_DIR)
-	bedtools makewindows -b $(SINGLECOPY_1KBCTGS_BED) -w 1 -s 500  > $(MIPGEN_TARGETS)
+	bedtools makewindows -b $(SINGLECOPY_1KBCTGS_BED) -w 1 -s 500  > $(MIPGEN_DIR)/targets_all.bed
+	Rscript ./R/subsampleBED.R $(MIPGEN_DIR)/targets_all.bed 10000 42 > $(MIPGEN_TARGETS)
 
 
 #
