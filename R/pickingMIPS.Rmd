@@ -1,0 +1,94 @@
+---
+title: "Choosing MIPs"
+output: html_notebook
+---
+
+Running MIPgen on a set of 10000 targets yeilded a set of 9997 "picked" MIPs. The task now is to select a set of MIPS with high logistic scores that are each located on a different scaffold.
+
+## Set up
+
+Load libs
+
+```{r}
+library(dplyr)
+library(stringr)
+```
+
+
+Read in the data.
+
+```{r all.picked.mips}
+all.picked.mips <- read.table("../mipgen/SoybeanLooper.picked_mips.txt",
+                              header = T,
+                              stringsAsFactors = T)
+```
+
+## One MIP per contig
+
+We want our final set of MIPs to be on different contigs. Subset the dat so that if there are multiple picked MIPs for a contig, we only retain the one with the highest logistic score.
+
+```{r best.scaffold.mips}
+grouped.picked.mips <- group_by(all.picked.mips, chr)
+
+best.scaffold.mips <- filter(grouped.picked.mips,
+                             logistic_score == max(logistic_score)
+                             )
+```
+
+## Sort by logistic score
+
+Since logistic scores reflect the chance of a succesful assay, we want to pick the MIPs with the highest scores.
+
+```{r}
+best.scaffold.mips <- arrange(best.scaffold.mips, 
+                              desc(logistic_score)
+                              )
+
+```
+
+## Select the top 50 MIPs
+
+```{r selected.mips}
+selected.mips <- head(best.scaffold.mips, 
+                      n = 50)
+
+
+```
+
+## How much sequence will these MIPs capture
+
+The column scan_target_sequence contains the sequence that will be interogated by the MIP, not including the extension and ligation arms. That makes it easy to see how much sequence the MIP set will scan.
+
+```{r}
+scanned.lengths <- str_length(as.character(selected.mips$scan_target_sequence))
+sum(scanned.lengths)
+range(scanned.lengths)
+hist(scanned.lengths,
+     breaks = seq(from = min(scanned.lengths) - 0.5,
+                  to = max(scanned.lengths) + 0.5,
+                  by = 1),
+     col = "steelblue1"
+     )
+```
+
+So we will be able to sequence up to 5.5kb in loci of 109 - 114 bp each.
+
+## Write out the selected MIP set.
+
+Write to the top-level directory.
+
+```{r}
+write.table(selected.mips,
+            file = "SoybeanLooper.Selected.MIPs.txt",
+            col.names = T,
+            row.names = F,
+            quote = F,
+            sep = '\t'
+            )
+```
+
+
+
+
+
+

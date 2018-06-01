@@ -207,3 +207,11 @@ After attempting to run MIPgen with all possible targets, it became apparent tha
 The solution is to sample from the total set of potential targets. Generating a sample of 10000 targets should still give us plenty of scope to select 50 high-quality MIPs that a re scattered throughout the genome. The R script that does the subsampling accepts a random seed as an argument. This is used to ensure that the same sample of targets can be selected every time the script is run.
 
 Made a subsample of 10000 targets and ran MIPgen. The picked_mips file contains 3224 MIPs with logistic scores >= 0.98 (ie very high scoring), in 3097 different scaffolds. 
+
+## Choosing MIPs to test
+
+Details are documented in the R markdown notebook. Basic approact was
+
+ 1. Filter picked MIPs to retain the MIPs with the highest logistic score in each scaffold.
+ 2. Sort the set of MIPs by logistic score
+ 3. Select the 50 MIPs with the highest logistic scores
