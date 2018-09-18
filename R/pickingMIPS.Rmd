@@ -79,7 +79,7 @@ Write to the top-level directory.
 
 ```{r}
 write.table(selected.mips,
-            file = "SoybeanLooper.Selected.MIPs.txt",
+            file = "../SoybeanLooper.Selected.MIPs.txt",
             col.names = T,
             row.names = F,
             quote = F,

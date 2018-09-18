@@ -210,8 +210,9 @@ Made a subsample of 10000 targets and ran MIPgen. The picked_mips file contains 
 
 ## Choosing MIPs to test
 
-Details are documented in the R markdown notebook. Basic approact was
+Details are documented in the R markdown notebook. Basic approach was
 
  1. Filter picked MIPs to retain the MIPs with the highest logistic score in each scaffold.
  2. Sort the set of MIPs by logistic score
  3. Select the 50 MIPs with the highest logistic scores
+ 
