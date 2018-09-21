@@ -20,11 +20,11 @@ Used trimmomatic to trim low quality sequence. Also ran an adaptor clipping step
 
 Re-ran fastqc on the trimmed paired data. Paired reads look good, quality is hig, no overrepresented sequences, 25,075,929 pairs of reads retained.
 
-## Assembly with SPAdes
+### Assembly with SPAdes
 
 We expect our genome to be highly heterozygous, which will tend to produce a fragmented assembly with many redundant contigs corresponding to alleles at the same loci. Hugh saw this problem with the WCR genome, and the redundans pipline did a decent job of cleaning up redundant contigs and improving scaffold length. We will use the same approach. In the redundans paper, they tried several DeBruijn assemblers, and SPAdes seemed to perform best, so we will do likewise. Spades puts all of its output into a specified dir, so we can use the output dir as the make target.
 
-### Results
+#### Results
 
 SPAdes generates both contigs and scaffolds
 
@@ -68,7 +68,7 @@ The modal value of coverage per base for contigs is around 5. Fairly low, but ap
 
 All told, I'm pretty happy with that. Nevertheless, it can't hurt to have Redundans try and clean things up a bit.
 
-## Cleanup with redundans
+### Cleanup with redundans
 
 Redundans is not available via bioconda, but it is available as a docker image. Opted to use the docker image because redundans has a fair number of dependencies to install. Ran redundans with the default parameters. Presumably as a result of the way redundans runs in docker, its output directory is owned by root. Had to chown the output dir.
 
@@ -119,7 +119,7 @@ There seems to be very little difference beween the scaffolds produced by redund
 |Total assembly size           |395,462,374                   |356,588,794                   |
 +------------------------------+------------------------------+------------------------------+
 
-## Repeats
+### Repeats
 
 We don't want to desgn a bunch of MIPs that target repetitive elements. Use RepeatModeler to do de-novo repeat identification and RepeatMasker to mask out any repeats
 
@@ -159,11 +159,11 @@ Eyeballing a few contigs in Tablet suggests this is pretty conservative. We are 
 
 After removal of scaffolds < 1kb, we are left with 335,481,145 bases of acceptable sequence, 94.1% of the redundans scaffolded assembly.
 
-## Identifying MIPs probes with MIPGEN
+### Identifying MIPs probes with MIPGEN
 
 The MIPGEN tool from the Shendure lab is designed to identify MIPs probes for specified targets. It also checks that probes won't hybridize elsewhere in the genome and calculates a score reflecting the probability that the probe will produce a viable assay. All of this is very helpful. However MIPGEN is intended for designing tiled sets of probes that cover larger features. We don't want to do this, because we are interested in surveying sites scattered throughout the genome. This isn't a big deal as we can just pick one probe from a tiled set.
 
-### MIPGEN is a little fussy
+#### MIPGEN is a little fussy
 
 After playing around with MIPgen, I noticed some things that cause it to fail. This was figured out by trial and error, since the MIPGEN documentation and paper didn't really give me any clues as to what was going on. Known issues include:
 
@@ -197,7 +197,7 @@ I don’t think I have time to add an option to the code (mostly because I am al
  *"Then as long as you keep -score_method logistic, I think it should run as you expect and tile those regions"*
 
 
-## Running MIPgen on a reduced set of targets
+### Running MIPgen on a reduced set of targets
 
 After attempting to run MIPgen with all possible targets, it became apparent that doing so would
  
@@ -208,7 +208,7 @@ The solution is to sample from the total set of potential targets. Generating a 
 
 Made a subsample of 10000 targets and ran MIPgen. The picked_mips file contains 3224 MIPs with logistic scores >= 0.98 (ie very high scoring), in 3097 different scaffolds. 
 
-## Choosing MIPs to test
+### Choosing MIPs to test
 
 Details are documented in the R markdown notebook. Basic approach was
 
@@ -216,3 +216,16 @@ Details are documented in the R markdown notebook. Basic approach was
  2. Sort the set of MIPs by logistic score
  3. Select the 50 MIPs with the highest logistic scores
  
+## First test run
+
+The first test sequencing run consisted of a total of 64 individauls. Ten were fall armworms, 46 were soybean loopers with 8 soybean loopers run in duplicate. Sequencing was succesful insofar as I got data and the indexing reads split the data into individual samples.
+
+On a side note, I'm trying out snakemake as an alternative to make. It's got a bit of learning curve but it looks like it will work better running jobs in parallel when there are multiple input or output files per job.
+
+### Initial QC
+
+### Trimming
+
+Reads are 151 bases long. Inserts range from 125 - 138 bp, so we definitely expect to see primer sequences showing up at the end of the reads. Used trimmomatic to remove the primer sequences. Because the primers inlude index sequences, set up the file with just the parts of the primers 3' to the indexes.
+
+Confusingly, I don't seem to be fidning any primer sequence.

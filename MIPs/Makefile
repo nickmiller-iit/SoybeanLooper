@@ -1,0 +1,114 @@
+#############################################################
+#############################################################
+## Master Makefile to map reads to loci and call genotypes ##
+#############################################################
+#############################################################
+
+
+###############
+# Basic setup #
+###############
+
+RAW_READ_DIR=raw_fastq
+
+RAW_R1=$(shell ls $(RAW_READ_DIR)/*_R1_*.fastq.gz)
+RAW_R2=$(shell ls $(RAW_READ_DIR)/*_R2_*.fastq.gz)
+RAW_ALL=$(RAW_R1) $(RAW_R2)
+
+# We can extract sample names from the read 1 file names provided the following hold true
+# 1. Filenames begin with the sample name
+# 2. The sample name is separated from the rest of the file name by an underscore
+# 3. Sample names do not contain underscores
+
+SAMPLES=$(shell echo $(notdir $(RAW_R1)) | tr " " "\n" | cut -d "_" -f1)
+
+# A custom function to get the sample name from a file name
+define getsample
+	$(strip $(shell echo $(notdir $(1)) | cut -d "_" -f1))
+endef
+
+###################
+# QC and trimOAming #
+###################
+
+# QC of raw data
+
+FASTQC_DIR=fastqc_out
+
+$(FASTQC_DIR):
+	if [ ! -d $(FASTQC_DIR) ]; then mkdir $(FASTQC_DIR); fi
+
+RAW_FASTQC_DIR=$(FASTQC_DIR)/raw
+
+$(RAW_FASTQC_DIR): $(FASTQC_DIR)
+	if [ ! -d $(RAW_FASTQC_DIR) ]; then mkdir $(RAW_FASTQC_DIR); fi
+
+RAW_FASTQC_OUTS=$(subst .fastq.gz,_fastqc.html,$(subst $(RAW_READ_DIR), $(RAW_FASTQC_DIR), $(RAW_ALL)))
+
+$(RAW_FASTQC_OUTS): $(RAW_ALL) | $(RAW_FASTQC_DIR)
+	fastqc -o $(RAW_FASTQC_DIR) $?
+
+RAW_FASTQC_SUMMARY=$(RAW_FASTQC_DIR)/summary.html
+
+$(RAW_FASTQC_SUMMARY): $(RAW_FASTQC_OUTS)
+	multiqc -n $(RAW_FASTQC_SUMMARY) $(RAW_FASTQC_DIR)
+
+.PHONY: qc_raw
+
+qc_raw: $(RAW_FASTQC_SUMMARY)
+
+
+# Trimming
+# This gets a bit tricky. The preferred option is to use automatic variables. That should let us
+# run jobs in parallel and update only what is needed as we add new data
+
+TRIM_DIR=trimmed_fastq
+
+$(TRIM_DIR):
+	if [ ! -d $(TRIM_DIR) ]; then mkdir $(TRIM_DIR); fi
+
+1P_TRIM=$(addprefix $(TRIM_DIR)/, $(addsuffix _1P.fastq.gz, $(SAMPLES)))
+2P_TRIM=$(addprefix $(TRIM_DIR)/, $(addsuffix _2P.fastq.gz, $(SAMPLES)))
+1UP_TRIM=$(addprefix $(TRIM_DIR)/, $(addsuffix _1UP.fastq.gz, $(SAMPLES)))
+2UP_TRIM=$(addprefix $(TRIM_DIR)/, $(addsuffix _2UP.fastq.gz, $(SAMPLES)))
+
+TRIM_ALL=$(1P_TRIM) $(2P_TRIM) $(1UP_TRIM) $(2UP_TRIM)
+
+TRIM_OPTS=ILLUMINACLIP:primers.fasta:2:30:7 SLIDINGWINDOW:4:20 MINLEN:40
+
+# For reasons that I don't understand using the filter function to retrieve
+# a filename from a set of files fails if the directory name is included.
+$(1P_TRIM): $(RAW_R1) | $(TRIM_DIR)
+	trimmomatic PE \
+	$(RAW_READ_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(RAW_R1))) \
+	$(RAW_READ_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(RAW_R2))) \
+	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(1P_TRIM))) \
+	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(1UP_TRIM))) \
+	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(2P_TRIM))) \
+	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(2UP_TRIM))) \
+	$(TRIM_OPTS)
+
+.PHONY: trim
+
+trim: $(1P_TRIM)
+
+# Post-trimming QC
+
+TRIM_FASTQC_DIR=$(FASTQC_DIR)/trimmed
+
+$(TRIM_FASTQC_DIR): $(FASTQC_DIR)
+	if [ ! -d $(TRIM_FASTQC_DIR) ]; then mkdir $(TRIM_FASTQC_DIR); fi
+
+TRIM_FASTQC_OUTS=$(subst .fastq.gz,_fastqc.html,$(subst $(TRIM_DIR), $(TRIM_FASTQC_DIR), $(TRIM_ALL)))
+
+$(TRIM_FASTQC_OUTS): $(TRIM_ALL) | $(TRIM_FASTQC_DIR)
+	fastqc -o $(TRIM_FASTQC_DIR) $?
+
+TRIM_FASTQC_SUMMARY=$(TRIM_FASTQC_DIR)/summary.html
+
+$(TRIM_FASTQC_SUMMARY): $(TRIM_FASTQC_OUTS)
+	multiqc -n $(TRIM_FASTQC_SUMMARY) $(TRIM_FASTQC_DIR)
+
+.PHONY: qc_trim
+
+qc_trim: $(TRIM_FASTQC_SUMMARY)
