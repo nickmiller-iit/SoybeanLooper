@@ -24,7 +24,7 @@ SAMPLES=$(shell echo $(notdir $(RAW_R1)) | tr " " "\n" | cut -d "_" -f1)
 
 # A custom function to get the sample name from a file name
 define getsample
-	$(strip $(shell echo $(notdir $(1)) | cut -d "_" -f1))
+	$(basename $(strip $(shell echo $(notdir $(1)) | cut -d "_" -f1)))
 endef
 
 ###################
@@ -161,3 +161,39 @@ $(MIPS_FASTA_IDX): $(MIPS_FASTA)
 
 mips_loci_ref: $(MIPS_FASTA_IDX)
 
+#####################################
+# Align sample reads to target loci #
+#####################################
+
+# Set up bwa index
+# There are multiple index files, any can serve as the target
+BWA_IDX=$(MIPS_FASTA).amb
+
+$(BWA_IDX): $(MIPS_FASTA)
+	bwa index $(MIPS_FASTA)
+
+#align sample reads to reference
+
+ALIGNMENTS=$(addprefix $(ALIGN_DIR)/,$(addsuffix .bam, $(SAMPLES)))
+
+$(ALIGNMENTS): $(BWA_IDX) $(1P_TRIM) $(2P_TRIM)
+	bwa mem \
+	$(MIPS_FASTA) \
+	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(1P_TRIM))) \
+	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(2P_TRIM))) \
+	| samtools view -b > $@
+
+SORTED_ALIGNMENTS=$(subst .bam,.sorted.bam,$(ALIGNMENTS))
+
+$(SORTED_ALIGNMENTS): $(ALIGNMENTS)
+	samtools sort -o $@ \
+	$(subst .sorted.bam,.bam,$@)
+
+SORTED_ALIGNMENTS_IDX=$(addsuffix .bai,$(SORTED_ALIGNMENTS))
+
+$(SORTED_ALIGNMENTS_IDX): $(SORTED_ALIGNMENTS)
+	samtools index $(subst .bai,,$@)
+
+.PHONY: align
+
+align: $(SORTED_ALIGNMENTS_IDX)
