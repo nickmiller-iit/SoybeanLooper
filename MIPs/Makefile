@@ -96,7 +96,7 @@ trim: $(1P_TRIM)
 
 TRIM_FASTQC_DIR=$(FASTQC_DIR)/trimmed
 
-$(TRIM_FASTQC_DIR): $(FASTQC_DIR)
+$(TRIM_FASTQC_DIR): | $(FASTQC_DIR)
 	if [ ! -d $(TRIM_FASTQC_DIR) ]; then mkdir $(TRIM_FASTQC_DIR); fi
 
 TRIM_FASTQC_OUTS=$(subst .fastq.gz,_fastqc.html,$(subst $(TRIM_DIR), $(TRIM_FASTQC_DIR), $(TRIM_ALL)))
@@ -112,6 +112,57 @@ $(TRIM_FASTQC_SUMMARY): $(TRIM_FASTQC_OUTS)
 .PHONY: qc_trim
 
 qc_trim: $(TRIM_FASTQC_SUMMARY)
+
+
+######################
+# Merge paired reads #
+######################
+
+# Combine paired reads into merged reads with PEAR
+
+MERGED_DIR=merged_fastq
+
+$(MERGED_DIR):
+	if [ ! -d $(MERGED_DIR) ]; then mkdir $(MERGED_DIR); fi
+
+MERGED_READS=$(addprefix $(MERGED_DIR)/, $(addsuffix _merged.fastq.gz,$(SAMPLES)))
+
+#PEAR likes to tack on a bunch of extra extrensions and does not compress output
+$(MERGED_READS):$(TRIM_ALL) | $(MERGED_DIR)
+	pear \
+	-f $(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(1P_TRIM))) \
+	-r $(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(2P_TRIM))) \
+	-o $@;
+	gzip -c $(addsuffix .assembled.fastq,$@) > $@;
+	rm $(addsuffix .*.fastq,$@);
+
+.PHONY: merge
+
+merge: $(MERGED_READS)
+
+# QC Merged data
+
+MERGED_FASTQC_DIR=$(FASTQC_DIR)/merged
+
+$(MERGED_FASTQC_DIR): | $(FASTQC_DIR)
+	if [ ! -d $(MERGED_FASTQC_DIR) ]; then mkdir $(MERGED_FASTQC_DIR); fi
+
+
+MERGED_FASTQC_OUTS=$(subst .fastq.gz,_fastqc.html,$(subst $(MERGED_DIR), $(MERGED_FASTQC_DIR), $(MERGED_READS)))
+
+$(MERGED_FASTQC_OUTS): $(MERGED_READS) | $(MERGED_FASTQC_DIR)
+	fastqc -o $(MERGED_FASTQC_DIR) $?
+
+MERGED_FASTQC_SUMMARY=$(MERGED_FASTQC_DIR)/summary.html
+
+$(MERGED_FASTQC_SUMMARY): $(MERGED_FASTQC_OUTS)
+	multiqc -n $(MERGED_FASTQC_SUMMARY) $(MERGED_FASTQC_DIR)
+
+.PHONY: qc_merged
+
+qc_merge: $(MERGED_FASTQC_SUMMARY)
+
+
 
 ###################################
 # Generating a reference for loci #
@@ -176,11 +227,10 @@ $(BWA_IDX): $(MIPS_FASTA)
 
 ALIGNMENTS=$(addprefix $(ALIGN_DIR)/,$(addsuffix .bam, $(SAMPLES)))
 
-$(ALIGNMENTS): $(BWA_IDX) $(1P_TRIM) $(2P_TRIM)
+$(ALIGNMENTS): $(BWA_IDX) $(MERGED_READS)
 	bwa mem \
 	$(MIPS_FASTA) \
-	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(1P_TRIM))) \
-	$(TRIM_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(2P_TRIM))) \
+	$(MERGED_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(MERGED_READS))) \
 	| samtools view -b > $@
 
 SORTED_ALIGNMENTS=$(subst .bam,.sorted.bam,$(ALIGNMENTS))
@@ -197,3 +247,4 @@ $(SORTED_ALIGNMENTS_IDX): $(SORTED_ALIGNMENTS)
 .PHONY: align
 
 align: $(SORTED_ALIGNMENTS_IDX)
+
