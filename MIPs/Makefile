@@ -28,7 +28,7 @@ define getsample
 endef
 
 ###################
-# QC and trimOAming #
+# QC and trimming #
 ###################
 
 # QC of raw data
@@ -112,3 +112,52 @@ $(TRIM_FASTQC_SUMMARY): $(TRIM_FASTQC_OUTS)
 .PHONY: qc_trim
 
 qc_trim: $(TRIM_FASTQC_SUMMARY)
+
+###################################
+# Generating a reference for loci #
+###################################
+
+# We don't need to map reads to the whole genome, only the loci captured by the
+# MIPS. Conveniently, the first part of the first part of the "X.mip_key" field
+# of the mipgen output (up to the first "/") is in the same format as samtools
+# uses to specify genome regions.
+
+# Get the genome scaffold and selected MIPgen output from the genome dir.
+
+GENOME_FASTA=SoybeanLooperScaffolds.fasta
+
+$(GENOME_FASTA): ../genome/$(GENOME_FASTA)
+	ln -s ../genome/$(GENOME_FASTA) .
+
+CHOSEN_MIPS=SoybeanLooper.Selected.MIPs.txt
+
+$(CHOSEN_MIPS): ../genome/$(CHOSEN_MIPS)
+	ln -s ../genome/$(CHOSEN_MIPS)  $(CHOSEN_MIPS)
+
+#faidx of genome file
+GENOME_FASTA_IDX=SoybeanLooperScaffolds.fasta.fai
+
+$(GENOME_FASTA_IDX): $(GENOME_FASTA)
+	samtools faidx $(GENOME_FASTA)
+
+# create an alignments dir with fasta of just the target loci
+
+ALIGN_DIR=aligned
+
+$(ALIGN_DIR):
+	if [ ! -d $(ALIGN_DIR) ]; then mkdir $(ALIGN_DIR); fi
+
+MIPS_FASTA=$(ALIGN_DIR)/loci.fasta
+
+$(MIPS_FASTA): $(GENOME_FASTA_IDX) $(CHOSEN_MIPS) | $(ALIGN_DIR)
+	samtools faidx $(GENOME_FASTA) `tail -n50 $(CHOSEN_MIPS) | cut -d "/" -f1` > $(MIPS_FASTA)
+
+MIPS_FASTA_IDX=$(MIPS_FASTA).fai
+
+$(MIPS_FASTA_IDX): $(MIPS_FASTA)
+	samtools faidx $(MIPS_FASTA)
+
+.PHONY: mips_loci_ref
+
+mips_loci_ref: $(MIPS_FASTA_IDX)
+
