@@ -228,4 +228,22 @@ On a side note, I'm trying out snakemake as an alternative to make. It's got a b
 
 Reads are 151 bases long. Inserts range from 125 - 138 bp, so we definitely expect to see primer sequences showing up at the end of the reads. Used trimmomatic to remove the primer sequences. Because the primers inlude index sequences, set up the file with just the parts of the primers 3' to the indexes.
 
-Confusingly, I don't seem to be fidning any primer sequence.
+Confusingly, I don't seem to be finding any primer sequence.
+
+Explanation - I was wrong about the insert size, because it include the extension and ligation arms. All insers are 154 bp, so we do not expect to see any primer.
+
+### Read merging
+
+Reads should almost span the entire insert. We can merge read pairs into singe leads with PEAR. Looking at the fastqc results for the trimmed reads there was a small population of reads with lengths <= 80 bases. Re-ran trimmomatic with minlen increased to 85 to get rid of these
+
+### Alignment
+
+Ran alignment with bwa mem and default parameters. Visualized aligned reads with Tablet. I see three basic patterns.
+
+1. Loci where no reads align
+2. Loci where reads align along their full lengths. Eyeballing suggests plenty of heterozygotes
+3. Loci where reads only align along part of their length and are "soft clipped"
+
+This third category is a bit of a worry. Some quick eye\balling indicates that the clipped reads match to the target locus at both ends but not in the middle. This indicates that they are off-target reads from genome locations that match the probe arms. This could be a result of repetitive elements, despite our best efforts to avoid those.
+
+In principle, a simple way to deal with this is to not include / get rid of soft-clipped reads. Bwa pretty much insists on soft clipping but bowtie, for example defaults to end-to-end alignments.

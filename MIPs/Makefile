@@ -74,7 +74,7 @@ $(TRIM_DIR):
 
 TRIM_ALL=$(1P_TRIM) $(2P_TRIM) $(1UP_TRIM) $(2UP_TRIM)
 
-TRIM_OPTS=ILLUMINACLIP:primers.fasta:2:30:7 SLIDINGWINDOW:4:20 MINLEN:40
+TRIM_OPTS=ILLUMINACLIP:primers.fasta:2:30:7 SLIDINGWINDOW:4:20 MINLEN:85
 
 # For reasons that I don't understand using the filter function to retrieve
 # a filename from a set of files fails if the directory name is included.
