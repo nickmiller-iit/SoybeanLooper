@@ -216,21 +216,22 @@ mips_loci_ref: $(MIPS_FASTA_IDX)
 # Align sample reads to target loci #
 #####################################
 
-# Set up bwa index
+# Set up bowtie index
 # There are multiple index files, any can serve as the target
-BWA_IDX=$(MIPS_FASTA).amb
 
-$(BWA_IDX): $(MIPS_FASTA)
-	bwa index $(MIPS_FASTA)
+BOWTIE_IDX=$(MIPS_FASTA).1.bt2
+
+$(BOWTIE_IDX): $(MIPS_FASTA)
+	bowtie2-build $(MIPS_FASTA) $(MIPS_FASTA)
 
 #align sample reads to reference
 
 ALIGNMENTS=$(addprefix $(ALIGN_DIR)/,$(addsuffix .bam, $(SAMPLES)))
 
-$(ALIGNMENTS): $(BWA_IDX) $(MERGED_READS)
-	bwa mem \
-	$(MIPS_FASTA) \
-	$(MERGED_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(MERGED_READS))) \
+$(ALIGNMENTS): $(BOWTIE_IDX) $(MERGED_READS)
+	bowtie2 \
+	-x $(MIPS_FASTA) \
+	-U $(MERGED_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(MERGED_READS))) \
 	| samtools view -b > $@
 
 SORTED_ALIGNMENTS=$(subst .bam,.sorted.bam,$(ALIGNMENTS))

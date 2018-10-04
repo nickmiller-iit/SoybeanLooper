@@ -246,4 +246,6 @@ Ran alignment with bwa mem and default parameters. Visualized aligned reads with
 
 This third category is a bit of a worry. Some quick eye\balling indicates that the clipped reads match to the target locus at both ends but not in the middle. This indicates that they are off-target reads from genome locations that match the probe arms. This could be a result of repetitive elements, despite our best efforts to avoid those.
 
-In principle, a simple way to deal with this is to not include / get rid of soft-clipped reads. Bwa pretty much insists on soft clipping but bowtie, for example defaults to end-to-end alignments.
+In principle, a simple way to deal with this is to not include / get rid of soft-clipped reads. Bwa pretty much insists on soft clipping but bowtie, for example defaults to end-to-end alignments. Using bowtie 2 does indeed get rid of the clipped reads. This results in some additional loci wuth no reads aligning. That's OK, because they were not useable loci in the first place.
+
+A comparison with MIPs data from fall armyworm partially supports the hypothesis that the off-target clipped reads were due to repetitive elements. The FAW MIPs were designed from a published genome sequence with repeats masked. I see a lot fewer loci in FAW with soft-clipped reads when aligning tith bwa. Nevertheless there are still a couple of loci with clipped reads, so repeats may no be the only issue
