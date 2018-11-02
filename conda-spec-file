@@ -25,6 +25,7 @@ https://repo.anaconda.com/pkgs/main/linux-64/libopenblas-0.2.20-h9ac9557_4.tar.b
 https://repo.anaconda.com/pkgs/main/linux-64/libxcb-1.13-h1bed415_1.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/mkl-2019.0-118.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/openssl-1.0.2o-0.tar.bz2
+https://conda.anaconda.org/bioconda/linux-64/parallel-20170422-pl5.22.0_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/pcre-8.42-h439df22_0.tar.bz2
 https://conda.anaconda.org/bioconda/linux-64/perl-threaded-5.22.0-pl5.22.0_12.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/readline-7.0-hb321a52_4.tar.bz2
@@ -82,6 +83,7 @@ https://conda.anaconda.org/bioconda/linux-64/spades-3.11.1-py36_zlib1.2.11_1.tar
 https://repo.anaconda.com/pkgs/main/linux-64/tornado-5.1-py36h14c3975_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/cffi-1.11.5-py36he75722e_1.tar.bz2
 https://repo.continuum.io/pkgs/free/linux-64/cycler-0.10.0-py36_0.tar.bz2
+https://conda.anaconda.org/bioconda/linux-64/htslib-1.9-h57f8fdf_0.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/lzstring-1.0.3-py36_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/networkx-2.0-py36h7e96fb8_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/python-dateutil-2.7.3-py36_0.tar.bz2
@@ -90,6 +92,7 @@ https://conda.anaconda.org/bioconda/linux-64/repeatmasker-4.0.7-pl5.22.0_11.tar.
 https://conda.anaconda.org/bioconda/linux-64/samtools-1.8-3.tar.bz2
 https://conda.anaconda.org/conda-forge/linux-64/setuptools-39.1.0-py36_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/cryptography-2.3-py36hb7f436b_0.tar.bz2
+https://conda.anaconda.org/bioconda/linux-64/freebayes-1.2.0-py36h82df9c4_2.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/jinja2-2.10-py36_0.tar.bz2
 https://repo.anaconda.com/pkgs/main/linux-64/pyqt-5.6.0-py36h22d08a2_6.tar.bz2
 https://conda.anaconda.org/bioconda/linux-64/repeatmodeler-1.0.11-pl5.22.0_0.tar.bz2
