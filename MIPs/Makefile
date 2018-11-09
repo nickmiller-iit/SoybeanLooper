@@ -232,7 +232,13 @@ $(ALIGNMENTS): $(BOWTIE_IDX) $(MERGED_READS)
 	bowtie2 \
 	-x $(MIPS_FASTA) \
 	-U $(MERGED_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(MERGED_READS))) \
+	--rg-id $(strip $(call getsample,$@)) \
+	--rg SM:$(strip $(call getsample,$@)) \
 	| samtools view -b > $@
+	# bowtie2 \
+	# -x $(MIPS_FASTA) \
+	# -U $(MERGED_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(MERGED_READS))) \
+	# | samtools view -b > $@
 
 SORTED_ALIGNMENTS=$(subst .bam,.sorted.bam,$(ALIGNMENTS))
 
@@ -249,3 +255,77 @@ $(SORTED_ALIGNMENTS_IDX): $(SORTED_ALIGNMENTS)
 
 align: $(SORTED_ALIGNMENTS_IDX)
 
+############################################
+# Calling and filtering polymorphisms      #
+#                                          #
+# NB. We confine ourselves to SNPs, Indels #
+# etc. are ignored                         #
+############################################
+
+VCF_DIR=vcf
+
+$(VCF_DIR):
+	if [ ! -d $(VCF_DIR) ]; then mkdir $(VCF_DIR); fi
+
+VCF_UNFILTERED=$(addprefix $(VCF_DIR)/,unfiltered.vcf)
+
+# Call polymorphisms with freebayes
+$(VCF_UNFILTERED): $(SORTED_ALIGNMENTS) $(MIPS_FASTA) | $(VCF_DIR)
+	freebayes -f $(MIPS_FASTA) $(SORTED_ALIGNMENTS) > $(VCF_UNFILTERED)
+
+.PHONY: call_polymorphisms
+
+call_polymorphisms: $(VCF_UNFILTERED)
+
+# GATK requires a sequence dictionary to do VCF filtering
+
+GATK_DICT=$(subst .fasta,.dict,$(MIPS_FASTA))
+
+$(GATK_DICT): $(MIPS_FASTA)
+	gatk CreateSequenceDictionary -R $(MIPS_FASTA) -O $(GATK_DICT)
+
+# Just the SNPS
+
+VCF_SNPS=$(addprefix $(VCF_DIR)/,snps.vcf)
+
+$(VCF_SNPS): $(VCF_UNFILTERED) $(GATK_DICT)
+	gatk SelectVariants -R $(MIPS_FASTA) -V $(VCF_UNFILTERED) -O $(VCF_SNPS) -select-type SNP
+
+# Filtered SNPs
+
+MIN_POLYMORPHISM_QUAL=30
+
+VCF_SNPS_FILTERED=$(addprefix $(VCF_DIR)/,filtered.snps.vcf)
+
+$(VCF_SNPS_FILTERED): $(VCF_SNPS)
+	gatk VariantFiltration \
+	-R $(MIPS_FASTA) \
+	-V $(VCF_SNPS) \
+	-O $(VCF_SNPS_FILTERED) \
+	--filter-expression "QUAL < 30" \
+	--filter-name "qual" \
+	--filter-expression "AB < 0.2 || AB > 0.8" \
+	--filter-name "all-bal" \
+
+# Filter for individuals with > 50% genotyped loci and loci where < 80% of individuals genotyped
+
+ACCEPTED_INDS=$(addprefix $(VCF_DIR)/,accepted.inds)
+
+$(ACCEPTED_INDS): $(VCF_SNPS_FILTERED)
+	vcftools --vcf $(VCF_SNPS_FILTERED) --stdout --missing-indv --remove-filtered-all | \
+	awk '$$5 < 0.5 {print $$1}' > $(ACCEPTED_INDS)
+
+VCF_SNPS_INDS_FILTERED=$(addprefix $(VCF_DIR)/,filtered.snps.inds.vcf)
+
+$(VCF_SNPS_INDS_FILTERED): $(VCF_SNPS_FILTERED) $(ACCEPTED_INDS)
+	vcftools --vcf $(VCF_SNPS_FILTERED) \
+	--stdout \
+	--recode \
+	--max-missing 0.8 \
+	--remove-filtered-all \
+	--keep $(ACCEPTED_INDS) \
+	> $(VCF_SNPS_INDS_FILTERED)
+
+.PHONY: test
+
+test: $(VCF_SNPS_INDS_FILTERED)
