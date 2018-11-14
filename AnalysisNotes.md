@@ -249,3 +249,16 @@ This third category is a bit of a worry. Some quick eye\balling indicates that t
 In principle, a simple way to deal with this is to not include / get rid of soft-clipped reads. Bwa pretty much insists on soft clipping but bowtie, for example defaults to end-to-end alignments. Using bowtie 2 does indeed get rid of the clipped reads. This results in some additional loci wuth no reads aligning. That's OK, because they were not useable loci in the first place.
 
 A comparison with MIPs data from fall armyworm partially supports the hypothesis that the off-target clipped reads were due to repetitive elements. The FAW MIPs were designed from a published genome sequence with repeats masked. I see a lot fewer loci in FAW with soft-clipped reads when aligning tith bwa. Nevertheless there are still a couple of loci with clipped reads, so repeats may no be the only issue
+
+### Genotype calling and filtering
+
+Initially, I thought I'd try treating the MIPs like genome-mapped RAD-Seq reads (there are some similarities after all). Trying stacks was a bust because it is finnicky about almost everything. Looking at the docs, dDocent just uses freebayes to call polymorphisms, so we might as well use freebayes directly.
+
+Freebayes calls a lot of garbage polymorphisms, so we then have to filter out the stuff that is likely to be bogus. The first step was to filter out non-SNP polymorphisms. Theres aren't neccessarily likely to be bogus, but they are tough to model. The next step is to drop polymorphisms with low overall quality scores or highly unbalanced "alleles" in the heterozygotes. Thie third filter gets rid of any indivdiuals for which a majority of the polymorphisms are not genotyped and any polymophisms for which less than 80% of the individuals are genotyped.
+
+These initial filters leave us with 39 SNPs distributed over just 7 loci. For most purposes, having multiple SNPs withn a few 10s of bp of each other is not terrible helpful because they are likely to be in LD. So we have a couple of options
+
+ * Pick one SNP per locus
+ * Try to resolve the SNPs into haplotypes.
+ 
+Attempting to resolve haplotypes with freebayes doesn't give us any haplotypes. 

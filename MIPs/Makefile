@@ -235,10 +235,6 @@ $(ALIGNMENTS): $(BOWTIE_IDX) $(MERGED_READS)
 	--rg-id $(strip $(call getsample,$@)) \
 	--rg SM:$(strip $(call getsample,$@)) \
 	| samtools view -b > $@
-	# bowtie2 \
-	# -x $(MIPS_FASTA) \
-	# -U $(MERGED_DIR)/$(filter $(call getsample,$@)_%, $(notdir $(MERGED_READS))) \
-	# | samtools view -b > $@
 
 SORTED_ALIGNMENTS=$(subst .bam,.sorted.bam,$(ALIGNMENTS))
 
@@ -326,6 +322,21 @@ $(VCF_SNPS_INDS_FILTERED): $(VCF_SNPS_FILTERED) $(ACCEPTED_INDS)
 	--keep $(ACCEPTED_INDS) \
 	> $(VCF_SNPS_INDS_FILTERED)
 
+
+VCF_HAPS=$(addprefix $(VCF_DIR)/,haplotypes.vcf)
+
+# freebayes requires *input* VCFs to be bgzippes/tabixed
+
+VCF_SNPS_INDS_FILTERED_GZ=$(addsuffix .gz, $(VCF_SNPS_INDS_FILTERED))
+
+$(VCF_SNPS_INDS_FILTERED_GZ): $(VCF_SNPS_INDS_FILTERED)
+	bgzip $(VCF_SNPS_INDS_FILTERED)
+	tabix -p vcf $(VCF_SNPS_INDS_FILTERED_GZ)
+
+
+$(VCF_HAPS): $(VCF_SNPS_INDS_FILTERED_GZ)
+	freebayes -f $(MIPS_FASTA) --haplotype-length 50 --haplotype-basis-alleles $(VCF_SNPS_INDS_FILTERED_GZ) $(SORTED_ALIGNMENTS) > $(VCF_HAPS)
+
 .PHONY: test
 
-test: $(VCF_SNPS_INDS_FILTERED)
+test: $(VCF_HAPS)
