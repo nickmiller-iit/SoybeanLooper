@@ -263,11 +263,42 @@ VCF_DIR=vcf
 $(VCF_DIR):
 	if [ ! -d $(VCF_DIR) ]; then mkdir $(VCF_DIR); fi
 
+
+# We only want to call SNPs in the "scanned" region, not the ends corrsponding to the probe arms
+# freebayes lets us specify targets in BED format. The required  fields are chrom, start and end,
+# subsequent fields are optional: feature name, score, strand.
+#
+# We can get all of this info from the MIPGen output file. Chrom is the first part of the mip_key
+# field, strand is the probe_strand (18th) field, mip_scan_start_position and mip_scan_stop_position
+# (12th and 13th fields) give the start and stop positions and mip_name (field 20) gives the name.
+# Score is aritrary
+#
+# *NBB* Bed files use 0-indexing
+
+TARGETS_BED=$(addprefix $(VCF_DIR)/,targets.bed)
+
+$(TARGETS_BED): $(CHOSEN_MIPS) | $(VCF_DIR)
+	tail -n50 $(CHOSEN_MIPS) \
+	| cut -f 1,12,13,18,20 \
+	| cut -d "/" -f 1,3 \
+	| sed s/\\/.// \
+	| awk '{print $$1,$$2 - 1,$$3 - 1,$$5,100,$$4}' \
+	| tr " " "\t" > $(TARGETS_BED)
+
+
+
+#tail -n50 SoybeanLooper.Selected.MIPs.txt | cut -f 1,12,13,18,20 | cut -d "/" -f 1,3 | sed s/\\/.// | awk '{print $1,$1,$2,$3,$4,$5}' | cut -d ":" -f2,3 | sed 's/-/ /' | awk '{print $3,$4 - $1,($2 - $1) - ($2 - $5),$7,100,$6}' | tr " " "\t" > vcf/targets.bed
+# NBB Tablet parses BED files as GFF3 and expects 9 columns
+
+.PHONY: targets_bedfile
+
+targets_bedfile: $(TARGETS_BED)
+
 VCF_UNFILTERED=$(addprefix $(VCF_DIR)/,unfiltered.vcf)
 
 # Call polymorphisms with freebayes
-$(VCF_UNFILTERED): $(SORTED_ALIGNMENTS) $(MIPS_FASTA) | $(VCF_DIR)
-	freebayes -f $(MIPS_FASTA) $(SORTED_ALIGNMENTS) > $(VCF_UNFILTERED)
+$(VCF_UNFILTERED): $(SORTED_ALIGNMENTS) $(MIPS_FASTA) $(TARGETS_BED) | $(VCF_DIR)
+	freebayes -f $(MIPS_FASTA) -t $(TARGETS_BED) $(SORTED_ALIGNMENTS) > $(VCF_UNFILTERED)
 
 .PHONY: call_polymorphisms
 
@@ -330,12 +361,12 @@ VCF_HAPS=$(addprefix $(VCF_DIR)/,haplotypes.vcf)
 VCF_SNPS_INDS_FILTERED_GZ=$(addsuffix .gz, $(VCF_SNPS_INDS_FILTERED))
 
 $(VCF_SNPS_INDS_FILTERED_GZ): $(VCF_SNPS_INDS_FILTERED)
-	bgzip $(VCF_SNPS_INDS_FILTERED)
+	bgzip -f $(VCF_SNPS_INDS_FILTERED)
 	tabix -p vcf $(VCF_SNPS_INDS_FILTERED_GZ)
 
 
 $(VCF_HAPS): $(VCF_SNPS_INDS_FILTERED_GZ)
-	freebayes -f $(MIPS_FASTA) --haplotype-length 50 --haplotype-basis-alleles $(VCF_SNPS_INDS_FILTERED_GZ) $(SORTED_ALIGNMENTS) > $(VCF_HAPS)
+	freebayes -f $(MIPS_FASTA) --haplotype-length 100 --haplotype-basis-alleles $(VCF_SNPS_INDS_FILTERED_GZ) $(SORTED_ALIGNMENTS) > $(VCF_HAPS)
 
 .PHONY: test
 
