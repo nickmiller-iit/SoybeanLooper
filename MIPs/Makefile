@@ -172,6 +172,7 @@ qc_merge: $(MERGED_FASTQC_SUMMARY)
 # MIPS. Conveniently, the first part of the first part of the "X.mip_key" field
 # of the mipgen output (up to the first "/") is in the same format as samtools
 # uses to specify genome regions.
+# Branch - as an alternative we pull the whole contig. Given as field 3 in the mipgen output
 
 # Get the genome scaffold and selected MIPgen output from the genome dir.
 
@@ -201,7 +202,7 @@ $(ALIGN_DIR):
 MIPS_FASTA=$(ALIGN_DIR)/loci.fasta
 
 $(MIPS_FASTA): $(GENOME_FASTA_IDX) $(CHOSEN_MIPS) | $(ALIGN_DIR)
-	samtools faidx $(GENOME_FASTA) `tail -n50 $(CHOSEN_MIPS) | cut -d "/" -f1` > $(MIPS_FASTA)
+	samtools faidx $(GENOME_FASTA) `tail -n50 $(CHOSEN_MIPS) | cut -f3` > $(MIPS_FASTA)
 
 MIPS_FASTA_IDX=$(MIPS_FASTA).fai
 
@@ -266,7 +267,7 @@ $(VCF_DIR):
 
 # We only want to call SNPs in the "scanned" region, not the ends corrsponding to the probe arms
 # freebayes lets us specify targets in BED format. The required  fields are chrom, start and end,
-# subsequent fields are optional: feature name, score, strand.
+# subsequent fields are optional: feature name, score, strand, thick line start, thick line end, colour
 #
 # We can get all of this info from the MIPGen output file. Chrom is the first part of the mip_key
 # field, strand is the probe_strand (18th) field, mip_scan_start_position and mip_scan_stop_position
@@ -274,21 +275,17 @@ $(VCF_DIR):
 # Score is aritrary
 #
 # *NBB* Bed files use 0-indexing
+# *NB* Tablet parses BED files as GFF3 and expects 9 columns
 
 TARGETS_BED=$(addprefix $(VCF_DIR)/,targets.bed)
 
 $(TARGETS_BED): $(CHOSEN_MIPS) | $(VCF_DIR)
-	tail -n50 $(CHOSEN_MIPS) \
-	| cut -f 1,12,13,18,20 \
-	| cut -d "/" -f 1,3 \
-	| sed s/\\/.// \
-	| awk '{print $$1,$$2 - 1,$$3 - 1,$$5,100,$$4}' \
-	| tr " " "\t" > $(TARGETS_BED)
+	tail -n50 SoybeanLooper.Selected.MIPs.txt \
+	| awk '{ FS = "\t" }; { print $$3,$$12-1,$$13-1,$$20,100,$$18,$$12-1,$$13-1,"255,0,0" }' \
+	| tr " " "\t" \
+	> $(TARGETS_BED)
 
 
-
-#tail -n50 SoybeanLooper.Selected.MIPs.txt | cut -f 1,12,13,18,20 | cut -d "/" -f 1,3 | sed s/\\/.// | awk '{print $1,$1,$2,$3,$4,$5}' | cut -d ":" -f2,3 | sed 's/-/ /' | awk '{print $3,$4 - $1,($2 - $1) - ($2 - $5),$7,100,$6}' | tr " " "\t" > vcf/targets.bed
-# NBB Tablet parses BED files as GFF3 and expects 9 columns
 
 .PHONY: targets_bedfile
 
@@ -296,13 +293,30 @@ targets_bedfile: $(TARGETS_BED)
 
 VCF_UNFILTERED=$(addprefix $(VCF_DIR)/,unfiltered.vcf)
 
+####
+# freebayes is slooooow
+# try running as freebayes-parallel
+#
+# parallelize over contigs
+#
+# Somehow runs even slower!
+
+FB_CONTIGS=$(addprefix $(VCF_DIR)/,contigs)
+
+$(FB_CONTIGS): $(MIPS_FASTA)
+	grep ">" $(MIPS_FASTA)  | sed 's/^>//' > $(FB_CONTIGS)
+
 # Call polymorphisms with freebayes
-$(VCF_UNFILTERED): $(SORTED_ALIGNMENTS) $(MIPS_FASTA) $(TARGETS_BED) | $(VCF_DIR)
+$(VCF_UNFILTERED): $(SORTED_ALIGNMENTS) $(MIPS_FASTA) $(MIPS_FASTA_IDX) $(FB_CONTIGS) $(TARGETS_BED) | $(VCF_DIR)
 	freebayes -f $(MIPS_FASTA) -t $(TARGETS_BED) $(SORTED_ALIGNMENTS) > $(VCF_UNFILTERED)
+
+#	freebayes-parallel $(FB_CONTIGS) 24 -f $(MIPS_FASTA) -t $(TARGETS_BED) $(SORTED_ALIGNMENTS) > $(VCF_UNFILTERED)
+
 
 .PHONY: call_polymorphisms
 
 call_polymorphisms: $(VCF_UNFILTERED)
+
 
 # GATK requires a sequence dictionary to do VCF filtering
 
@@ -353,6 +367,10 @@ $(VCF_SNPS_INDS_FILTERED): $(VCF_SNPS_FILTERED) $(ACCEPTED_INDS)
 	--keep $(ACCEPTED_INDS) \
 	> $(VCF_SNPS_INDS_FILTERED)
 
+.PHONY: filter_SNPs
+
+filter_SNPs: $(VCF_SNPS_INDS_FILTERED)
+
 
 VCF_HAPS=$(addprefix $(VCF_DIR)/,haplotypes.vcf)
 
@@ -368,6 +386,6 @@ $(VCF_SNPS_INDS_FILTERED_GZ): $(VCF_SNPS_INDS_FILTERED)
 $(VCF_HAPS): $(VCF_SNPS_INDS_FILTERED_GZ)
 	freebayes -f $(MIPS_FASTA) --haplotype-length 100 --haplotype-basis-alleles $(VCF_SNPS_INDS_FILTERED_GZ) $(SORTED_ALIGNMENTS) > $(VCF_HAPS)
 
-.PHONY: test
 
-test: $(VCF_HAPS)
+
+test: $(VCF_SNPS_INDS_FILTERED)
