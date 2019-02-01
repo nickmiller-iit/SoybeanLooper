@@ -262,3 +262,5 @@ These initial filters leave us with 39 SNPs distributed over just 7 loci. For mo
  * Try to resolve the SNPs into haplotypes.
  
 Attempting to resolve haplotypes with freebayes doesn't give us any haplotypes. 
+
+Turns out that most of the SNPs are rare, only a handful at intermediate frequencies.

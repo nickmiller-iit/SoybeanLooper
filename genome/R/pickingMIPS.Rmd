@@ -25,7 +25,7 @@ all.picked.mips <- read.table("../mipgen/SoybeanLooper.picked_mips.txt",
 
 ## One MIP per contig
 
-We want our final set of MIPs to be on different contigs. Subset the dat so that if there are multiple picked MIPs for a contig, we only retain the one with the highest logistic score.
+We want our final set of MIPs to be on different contigs. Subset the data so that if there are multiple picked MIPs for a contig, we only retain the one with the highest logistic score.
 
 ```{r best.scaffold.mips}
 grouped.picked.mips <- group_by(all.picked.mips, chr)
@@ -50,7 +50,7 @@ best.scaffold.mips <- arrange(best.scaffold.mips,
 
 ```{r selected.mips}
 selected.mips <- head(best.scaffold.mips, 
-                      n = 50)
+                      n = 100)
 
 
 ```
