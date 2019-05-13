@@ -264,3 +264,8 @@ These initial filters leave us with 39 SNPs distributed over just 7 loci. For mo
 Attempting to resolve haplotypes with freebayes doesn't give us any haplotypes. 
 
 Turns out that most of the SNPs are rare, only a handful at intermediate frequencies.
+
+## BUSCO analysis
+
+We are planning a USDA-NIFA foundational proposal. As part of the, we will improve the genome assembly. It would be good to know how good it is already. To that end, we will get some BUSCO stats.
+
