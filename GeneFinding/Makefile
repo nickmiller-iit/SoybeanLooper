@@ -77,3 +77,40 @@ H.armigera.exon1.scaffs.fasta: ryanodineReceptorScaffs.fasta
 .PHONY: exon1
 
 exon1: H.armigera.exon1.fasta H.armigera.exon1.scaffs.fasta
+
+H.armigera.exon4.fasta: exon4.gtf ryanodineReceptorScaffs.fasta
+	seqkit subseq --gtf exon4.gtf ryanodineReceptorScaffs.fasta > exon4.fasta
+
+H.armigera.exon5.fasta: exon5.gtf ryanodineReceptorScaffs.fasta
+	seqkit subseq --gtf exon5.gtf ryanodineReceptorScaffs.fasta > exon5.fasta
+
+H.armigera.exon6.fasta: exon6.gtf ryanodineReceptorScaffs.fasta
+	seqkit subseq --gtf exon6.gtf ryanodineReceptorScaffs.fasta > exon6.fasta
+
+H.armigera.exon4-6.scaffs.fasta: ryanodineReceptorScaffs.fasta
+	seqkit grep -p scaffold10712,scaffold30469 ryanodineReceptorScaffs.fasta \
+	> H.armigera.exon4-6.scaffs.fasta
+
+.PHONY: exons4-6
+
+exons4-6: H.armigera.exon4.fasta H.armigera.exon5.fasta H.armigera.exon6.fasta H.armigera.exon4-6.scaffs.fasta
+
+## Duplication level of exons
+
+### Extract just the exonic hits on the genome as a gtf.
+
+H.armigera.ryanodine.exons.gtf: H.armigera.ryanodine.exonerate.out
+	grep -P '\texon\t' H.armigera.ryanodine.exonerate.out > H.armigera.ryanodine.exons.gtf
+
+### Get the genome sequence of the exons
+
+H.armigera.ryanodine.exons.fasta: H.armigera.ryanodine.exons.gtf
+	seqkit subseq --gtf H.armigera.ryanodine.exons.gtf ryanodineReceptorScaffs.fasta \
+	> H.armigera.ryanodine.exons.fasta
+
+### Cluster with cd-hit
+
+H.armigera.ryanodine.exons.clustered.fasta: H.armigera.ryanodine.exons.fasta
+	cd-hit-est -i H.armigera.ryanodine.exons.fasta -o H.armigera.ryanodine.exons.clustered.fasta
+
+
