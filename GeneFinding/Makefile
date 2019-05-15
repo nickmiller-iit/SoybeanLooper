@@ -114,3 +114,32 @@ H.armigera.ryanodine.exons.clustered.fasta: H.armigera.ryanodine.exons.fasta
 	cd-hit-est -i H.armigera.ryanodine.exons.fasta -o H.armigera.ryanodine.exons.clustered.fasta
 
 
+## Acetylcholinesterase
+
+### tblastn search to narro down to putative achE exon-bearing scaffolds
+
+achEHits.txt: SoybeanLooperScaffolds.fasta.nhr
+	tblastn -db SoybeanLooperScaffolds.fasta -query noctuidAchE.fasta -evalue 1e-09 -outfmt 7 > achEHits.txt
+
+.PHONY: blastache
+
+blastache: achEHits.txt
+
+### extract the putative exon-containing scaffolds to a new fasta file
+
+achEScaffs.txt: achEHits.txt
+	grep -v "#" achEHits.txt | cut -f2 | sort -u > achEScaffs.txt
+
+achEScaffs.fasta: achEScaffs.txt
+	seqkit grep -n -f achEScaffs.txt SoybeanLooperScaffolds.fasta > achEScaffs.fasta
+
+.PHONY: achescaffolds
+
+achescaffolds: achEScaffs.fasta
+
+### Run exonerate with H. armigera as query
+
+H.armigera.achE.exonerate.out: achEScaffs.fasta H.armigera.achE.fasta
+	exonerate --model protein2genome --ryo "%qi %ti %pi" H.armigera.achE.fasta achEScaffs.fasta \
+	> H.armigera.achE.exonerate.out
+
